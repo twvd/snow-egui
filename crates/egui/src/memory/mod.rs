@@ -571,48 +571,50 @@ impl Focus {
 
         self.focus_direction = FocusDirection::None;
 
-        for event in &new_input.events {
-            if !event_filter.matches(event) {
-                if let crate::Event::Key {
-                    key,
-                    pressed: true,
-                    modifiers,
-                    ..
-                } = event
-                {
-                    if let Some(cardinality) = match key {
-                        crate::Key::ArrowUp => Some(FocusDirection::Up),
-                        crate::Key::ArrowRight => Some(FocusDirection::Right),
-                        crate::Key::ArrowDown => Some(FocusDirection::Down),
-                        crate::Key::ArrowLeft => Some(FocusDirection::Left),
+        if self.focused_widget.is_some() {
+            for event in &new_input.events {
+                if !event_filter.matches(event) {
+                    if let crate::Event::Key {
+                        key,
+                        pressed: true,
+                        modifiers,
+                        ..
+                    } = event
+                    {
+                        if let Some(cardinality) = match key {
+                            crate::Key::ArrowUp => Some(FocusDirection::Up),
+                            crate::Key::ArrowRight => Some(FocusDirection::Right),
+                            crate::Key::ArrowDown => Some(FocusDirection::Down),
+                            crate::Key::ArrowLeft => Some(FocusDirection::Left),
 
-                        crate::Key::Tab => {
-                            if modifiers.shift {
-                                Some(FocusDirection::Previous)
-                            } else {
-                                Some(FocusDirection::Next)
+                            crate::Key::Tab => {
+                                if modifiers.shift {
+                                    Some(FocusDirection::Previous)
+                                } else {
+                                    Some(FocusDirection::Next)
+                                }
                             }
+                            crate::Key::Escape => {
+                                self.focused_widget = None;
+                                Some(FocusDirection::None)
+                            }
+                            _ => None,
+                        } {
+                            self.focus_direction = cardinality;
                         }
-                        crate::Key::Escape => {
-                            self.focused_widget = None;
-                            Some(FocusDirection::None)
-                        }
-                        _ => None,
-                    } {
-                        self.focus_direction = cardinality;
                     }
                 }
-            }
 
-            #[cfg(feature = "accesskit")]
-            {
-                if let crate::Event::AccessKitActionRequest(accesskit::ActionRequest {
-                    action: accesskit::Action::Focus,
-                    target,
-                    data: None,
-                }) = event
+                #[cfg(feature = "accesskit")]
                 {
-                    self.id_requested_by_accesskit = Some(*target);
+                    if let crate::Event::AccessKitActionRequest(accesskit::ActionRequest {
+                        action: accesskit::Action::Focus,
+                        target,
+                        data: None,
+                    }) = event
+                    {
+                        self.id_requested_by_accesskit = Some(*target);
+                    }
                 }
             }
         }
